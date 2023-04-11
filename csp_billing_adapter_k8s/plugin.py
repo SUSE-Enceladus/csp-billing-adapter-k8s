@@ -1,0 +1,170 @@
+import base64
+import json
+import os
+
+import csp_billing_adapter
+
+from kubernetes.client.rest import ApiException
+from kubernetes import client
+from kubernetes import config as k8s_config
+
+from csp_billing_adapter.config import Config
+from csp_billing_adapter.csp_usage import Usage
+
+namespace = os.environ['ADAPTER_NAMESPACE']
+cache_secret = os.environ['CACHE_SECRET']
+csp_config = os.environ['CSP_CONFIGMAP']
+usage_crd_plural = os.environ['USAGE_CRD_PLURAL']
+usage_resource = os.environ['USAGE_RESOURCE']
+usage_api_version = os.environ['USAGE_API_VERSION']
+usage_api_group = os.environ['USAGE_API_GROUP']
+
+
+@csp_billing_adapter.hookimpl
+def setup_adapter(config: Config):
+    k8s_config.load_kube_config()
+
+
+@csp_billing_adapter.hookimpl
+def save_cache(config: Config, cache: dict):
+    api_instance = client.CoreV1Api()
+
+    secret = client.V1Secret(
+        metadata=client.V1ObjectMeta(
+            name=cache_secret,
+            namespace=namespace
+        ),
+        string_data={'data': json.dumps(cache)},
+        type='Opaque'
+    )
+
+    try:
+        api_instance.create_namespaced_secret(
+            namespace,
+            secret
+        )
+    except ApiException as error:
+        if error.status == 409:
+            return None  # Already exists
+        else:
+            raise
+
+
+@csp_billing_adapter.hookimpl
+def get_cache(config: Config):
+    api_instance = client.CoreV1Api()
+    try:
+        resource = api_instance.read_namespaced_secret(
+            cache_secret,
+            namespace,
+        )
+    except ApiException as error:
+        if error.status == 404:
+            return None
+        else:
+            raise
+    else:
+        return json.loads(base64.b64decode(resource.data.get('data')).decode())
+
+
+@csp_billing_adapter.hookimpl
+def update_cache(config: Config, cache: dict, replace: bool = False):
+    api_instance = client.CoreV1Api()
+
+    if not replace:
+        cache = {**get_cache(), **cache}
+
+    api_instance.patch_namespaced_secret(
+        cache_secret,
+        namespace,
+        {
+            'data': {
+                'data': base64.b64encode(json.dumps(cache).encode()).decode()
+            }
+        }
+    )
+
+
+@csp_billing_adapter.hookimpl
+def get_csp_config(config: Config):
+    api_instance = client.CoreV1Api()
+    try:
+        resp = api_instance.read_namespaced_config_map(
+            csp_config,
+            namespace
+        )
+    except ApiException as error:
+        if error.status == 404:
+            return None
+        else:
+            raise
+    else:
+        return json.loads(resp.data.get('data', '{}'))
+
+
+@csp_billing_adapter.hookimpl
+def update_csp_config(config: Config, csp_config: Config, replace: bool = False):
+    api_instance = client.CoreV1Api()
+
+    if not replace:
+        csp_config = {**get_csp_config(), **csp_config}
+
+    api_instance.patch_namespaced_config_map(
+        csp_config,
+        namespace,
+        {'data': {'data': json.dumps(csp_config)}}
+    )
+
+
+@csp_billing_adapter.hookimpl
+def save_csp_config(
+    config: Config,
+    csp_config: Config
+):
+    api_instance = client.CoreV1Api()
+    data = {'data': json.dumps(csp_config)}
+
+    config_map = client.V1ConfigMap(
+        data=data,
+        metadata=client.V1ObjectMeta(
+            name=csp_config,
+            namespace=namespace
+        )
+    )
+
+    try:
+        api_instance.create_namespaced_config_map(
+            namespace,
+            config_map
+        )
+    except ApiException as error:
+        if error.status == 409:
+            return None  # Already exists
+        else:
+            raise
+
+
+@csp_billing_adapter.hookimpl
+def get_usage_data(config: Config):
+    api = client.CustomObjectsApi()
+
+    try:
+        resource = api.get_cluster_custom_object(
+            group=usage_api_group,
+            version=usage_api_version,
+            plural=usage_crd_plural,
+            name=usage_resource,
+        )
+    except ApiException as error:
+        if error.status == 404:
+            raise Exception(
+                'Usage resource not found. Unable to log current usage.'
+            )
+        else:
+            raise
+
+    usage = Usage(
+        resource.get('nodes'),
+        resource.get('timestamp')
+    )
+    return usage
