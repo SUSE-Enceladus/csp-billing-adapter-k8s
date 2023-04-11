@@ -1,0 +1,3 @@
+csp-billing-adapter
+kubernetes
+pluggy
