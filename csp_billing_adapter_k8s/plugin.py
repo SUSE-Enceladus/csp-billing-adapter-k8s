@@ -28,8 +28,6 @@ from csp_billing_adapter.config import Config
 from csp_billing_adapter.csp_usage import Usage
 
 namespace = os.environ['ADAPTER_NAMESPACE']
-cache_secret = os.environ['CACHE_SECRET']
-csp_config = os.environ['CSP_CONFIGMAP']
 usage_crd_plural = os.environ['USAGE_CRD_PLURAL']
 usage_resource = os.environ['USAGE_RESOURCE']
 usage_api_version = os.environ['USAGE_API_VERSION']
@@ -47,7 +45,7 @@ def save_cache(config: Config, cache: dict):
 
     secret = client.V1Secret(
         metadata=client.V1ObjectMeta(
-            name=cache_secret,
+            name='csp-adapter-cache',
             namespace=namespace
         ),
         string_data={'data': json.dumps(cache)},
@@ -71,7 +69,7 @@ def get_cache(config: Config):
     api_instance = client.CoreV1Api()
     try:
         resource = api_instance.read_namespaced_secret(
-            cache_secret,
+            'csp-adapter-cache',
             namespace,
         )
     except ApiException as error:
@@ -91,7 +89,7 @@ def update_cache(config: Config, cache: dict, replace: bool = False):
         cache = {**get_cache(), **cache}
 
     api_instance.patch_namespaced_secret(
-        cache_secret,
+        'csp-adapter-cache',
         namespace,
         {
             'data': {
@@ -106,7 +104,7 @@ def get_csp_config(config: Config):
     api_instance = client.CoreV1Api()
     try:
         resp = api_instance.read_namespaced_config_map(
-            csp_config,
+            'csp-config',
             namespace
         )
     except ApiException as error:
@@ -126,7 +124,7 @@ def update_csp_config(config: Config, csp_config: Config, replace: bool = False)
         csp_config = {**get_csp_config(), **csp_config}
 
     api_instance.patch_namespaced_config_map(
-        csp_config,
+        'csp-config',
         namespace,
         {'data': {'data': json.dumps(csp_config)}}
     )
@@ -143,7 +141,7 @@ def save_csp_config(
     config_map = client.V1ConfigMap(
         data=data,
         metadata=client.V1ObjectMeta(
-            name=csp_config,
+            name='csp-config',
             namespace=namespace
         )
     )
