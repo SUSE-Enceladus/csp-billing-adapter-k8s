@@ -182,7 +182,8 @@ def get_usage_data(config: Config):
         else:
             raise
 
-    # Sanitize metadata
+    # Sanitize k8s metadata from response.
+    # This leaves only the usage data provided by the product.
     try:
         del resource['metadata']
     except KeyError:
