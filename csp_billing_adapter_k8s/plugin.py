@@ -25,7 +25,6 @@ from kubernetes import client
 from kubernetes import config as k8s_config
 
 from csp_billing_adapter.config import Config
-from csp_billing_adapter.csp_usage import Usage
 
 namespace = os.environ['ADAPTER_NAMESPACE']
 cache_secret = os.environ['CACHE_SECRET']
@@ -119,7 +118,11 @@ def get_csp_config(config: Config):
 
 
 @csp_billing_adapter.hookimpl
-def update_csp_config(config: Config, csp_config: Config, replace: bool = False):
+def update_csp_config(
+    config: Config,
+    csp_config: Config,
+    replace: bool = False
+):
     api_instance = client.CoreV1Api()
 
     if not replace:
@@ -179,8 +182,20 @@ def get_usage_data(config: Config):
         else:
             raise
 
-    usage = Usage(
-        resource.get('nodes'),
-        resource.get('timestamp')
-    )
-    return usage
+    # Sanitize metadata
+    try:
+        del resource['metadata']
+    except KeyError:
+        pass
+
+    try:
+        del resource['apiVersion']
+    except KeyError:
+        pass
+
+    try:
+        del resource['kind']
+    except KeyError:
+        pass
+
+    return resource
