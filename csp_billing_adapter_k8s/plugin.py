@@ -81,7 +81,7 @@ def get_cache(config: Config):
 
 
 @csp_billing_adapter.hookimpl
-def update_cache(config: Config, cache: dict, replace: bool = False):
+def update_cache(config: Config, cache: dict, replace: bool):
     api_instance = client.CoreV1Api()
 
     if not replace:
@@ -119,7 +119,7 @@ def get_csp_config(config: Config):
 def update_csp_config(
     config: Config,
     csp_config: Config,
-    replace: bool = False
+    replace: bool
 ):
     api_instance = client.CoreV1Api()
 
