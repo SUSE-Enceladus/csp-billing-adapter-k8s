@@ -85,7 +85,7 @@ def update_cache(config: Config, cache: dict, replace: bool):
     api_instance = client.CoreV1Api()
 
     if not replace:
-        cache = {**get_cache(), **cache}
+        cache = {**get_cache(config=config), **cache}
 
     api_instance.patch_namespaced_secret(
         'csp-adapter-cache',
@@ -124,7 +124,7 @@ def update_csp_config(
     api_instance = client.CoreV1Api()
 
     if not replace:
-        csp_config = {**get_csp_config(), **csp_config}
+        csp_config = {**get_csp_config(config=config), **csp_config}
 
     api_instance.patch_namespaced_config_map(
         'csp-config',
