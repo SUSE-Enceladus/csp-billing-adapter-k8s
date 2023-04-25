@@ -35,7 +35,7 @@ usage_api_group = os.environ['USAGE_API_GROUP']
 
 @csp_billing_adapter.hookimpl
 def setup_adapter(config: Config):
-    k8s_config.load_kube_config()
+    k8s_config.load_incluster_config()
 
 
 @csp_billing_adapter.hookimpl
