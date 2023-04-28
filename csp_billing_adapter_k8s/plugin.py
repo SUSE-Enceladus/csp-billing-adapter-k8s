@@ -14,6 +14,13 @@
 # limitations under the License.
 #
 
+"""
+Implements hook functions for storage and usage API in k8s environment.
+The location of resources and namespace is determined by environment
+variables.
+"""
+
+
 import base64
 import json
 import os
@@ -22,7 +29,11 @@ import csp_billing_adapter
 
 from kubernetes.client.rest import ApiException
 from kubernetes import client
-from kubernetes import config as k8s_config
+from kubernetes.config import (
+    ConfigException,
+    load_incluster_config,
+    load_kube_config
+)
 
 from csp_billing_adapter.config import Config
 
@@ -35,14 +46,25 @@ usage_api_group = os.environ['USAGE_API_GROUP']
 
 @csp_billing_adapter.hookimpl
 def setup_adapter(config: Config):
+    """
+    Authenticae to k8s cluster
+
+    Authentication first tries incluster config for running in a container.
+    Then it will check kube config if running on control plane.
+    """
     try:
-        k8s_config.load_incluster_config()
-    except k8s_config.ConfigException:
-        k8s_config.load_kube_config()
+        load_incluster_config()
+    except ConfigException:
+        load_kube_config()
 
 
 @csp_billing_adapter.hookimpl
 def save_cache(config: Config, cache: dict):
+    """
+    Store the cache as a namespaced opaque secret in k8s cluster
+
+    If the cache already exists nothing happens and return None.
+    """
     api_instance = client.CoreV1Api()
 
     secret = client.V1Secret(
@@ -68,6 +90,11 @@ def save_cache(config: Config, cache: dict):
 
 @csp_billing_adapter.hookimpl
 def get_cache(config: Config):
+    """
+    Return the namespaced cache from k8s cluster
+
+    If it does not exist return None.
+    """
     api_instance = client.CoreV1Api()
     try:
         resource = api_instance.read_namespaced_secret(
@@ -85,6 +112,12 @@ def get_cache(config: Config):
 
 @csp_billing_adapter.hookimpl
 def update_cache(config: Config, cache: dict, replace: bool):
+    """
+    Update the namespace cache secret in k8s cluster
+
+    If replace is True the cache will be replaced with the provided
+    values. Otherwise the cache is updated based on the values provided.
+    """
     api_instance = client.CoreV1Api()
 
     if not replace:
@@ -103,6 +136,12 @@ def update_cache(config: Config, cache: dict, replace: bool):
 
 @csp_billing_adapter.hookimpl
 def get_csp_config(config: Config):
+    """
+    Get the namespaced csp-config config map from k8s cluster
+
+    If the config map does not exist return None.
+    """
+
     api_instance = client.CoreV1Api()
     try:
         resp = api_instance.read_namespaced_config_map(
@@ -124,6 +163,12 @@ def update_csp_config(
     csp_config: Config,
     replace: bool
 ):
+    """
+    Update the namespaced csp-config config map in k8s cluster
+
+    If replace is True replace the config map with values provided.
+    Otherwise the existing map is updated using the values provided.
+    """
     api_instance = client.CoreV1Api()
 
     if not replace:
@@ -141,6 +186,12 @@ def save_csp_config(
     config: Config,
     csp_config: Config
 ):
+    """
+    Save the namespaced csp-config config map to k8s cluster
+
+    If the config map already exists do nothing and return None.
+    """
+
     api_instance = client.CoreV1Api()
     data = {'data': json.dumps(csp_config)}
 
@@ -166,6 +217,12 @@ def save_csp_config(
 
 @csp_billing_adapter.hookimpl
 def get_usage_data(config: Config):
+    """
+    Get the usage data from the CRD based on environment variables
+
+    If the CRD is not found raise an Exception to calling scope.
+    """
+
     api = client.CustomObjectsApi()
 
     try:
