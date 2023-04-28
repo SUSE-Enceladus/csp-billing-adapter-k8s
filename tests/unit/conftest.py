@@ -17,8 +17,8 @@
 import os
 
 
-os.environ['ADAPTER_NAMESPACE'] = 'neuvector-csp-billing-adapter'
-os.environ['USAGE_CRD_PLURAL'] = 'neuvectorusagerecords'
-os.environ['USAGE_RESOURCE'] = 'neuvector-usage'
+os.environ['ADAPTER_NAMESPACE'] = 'product-billing-adapter'
+os.environ['USAGE_CRD_PLURAL'] = 'productusagerecords'
+os.environ['USAGE_RESOURCE'] = 'product-usage'
 os.environ['USAGE_API_VERSION'] = 'v1'
-os.environ['USAGE_API_GROUP'] = 'neuvector.com'
+os.environ['USAGE_API_GROUP'] = 'product.com'
