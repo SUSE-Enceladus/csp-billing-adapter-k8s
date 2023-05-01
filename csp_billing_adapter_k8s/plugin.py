@@ -47,7 +47,7 @@ usage_api_group = os.environ['USAGE_API_GROUP']
 @csp_billing_adapter.hookimpl
 def setup_adapter(config: Config):
     """
-    Authenticae to k8s cluster
+    Authenticate to k8s cluster
 
     Authentication first tries incluster config for running in a container.
     Then it will check kube config if running on control plane.
