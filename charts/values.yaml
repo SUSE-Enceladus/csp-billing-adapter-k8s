@@ -1,0 +1,24 @@
+# Default values for neuvector.
+# This is a YAML-formatted file.
+# Declare variables to be passed into the templates.
+
+registry: docker.io
+tag: 5.1.2
+oem:
+imagePullSecrets:
+psp: false
+rbac: true
+serviceAccount: default
+
+awsbilling:
+  enabled: false
+  accountNumber: ""
+  roleName: ""
+  serviceAccount: csp
+  annotations: {}
+  imagePullSecrets:
+  image:
+    registry: docker.io
+    repository: neuvector/neuvector-csp-adapter
+    tag: 1.0.0
+    imagePullPolicy: IfNotPresent
