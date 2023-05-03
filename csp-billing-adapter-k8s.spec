@@ -66,7 +66,7 @@ storage of data using k8s resources.
 
 %files %{python_files}
 %license LICENSE
-%doc README.md CONTRIBUTING.md
+%doc README.md CONTRIBUTING.md CHANGES.md
 %{python_sitelib}/csp_billing_adapter_k8s
 %{python_sitelib}/csp_billing_adapter_k8s-%{version}*-info
 
