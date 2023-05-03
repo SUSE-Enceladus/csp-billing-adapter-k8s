@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nv-csp-billing-adapter
+  namespace: neuvector-csp-billing-adapter
+spec:
+  selector:
+    matchLabels:
+      app: nv-csp-billing-adapter 
+  template:
+    metadata:
+      labels:
+        app: nv-csp-billing-adapter 
+    spec:
+      containers:
+      - env:
+        - name: ADAPTER_NAMESPACE
+          value: 'neuvector-csp-billing-adapter'
+        - name: USAGE_CRD_PLURAL
+          value: 'neuvectorusagerecords'
+        - name: USAGE_RESOURCE
+          value: 'neuvector-usage'
+        - name: USAGE_API_VERSION
+          value: 'v1'
+        - name: USAGE_API_GROUP
+          value: 'neuvector.com'
+        image: registry.opensuse.org/home/seanmarlow/containers/containers/cloud/tools/csp-adapter-container:latest
+        name: nv-csp-billing-adapter
+        imagePullPolicy: "IfNotPresent"
+      serviceAccountName: csp-billing-adapter-account
