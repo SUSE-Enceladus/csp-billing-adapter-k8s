@@ -4,3 +4,4 @@ metadata:
   name: neuvector-usage
 managed_node_count: 10
 reporting_time: "2023-04-17T20:50:00.000000+00:00"
+base_product: "cpe:/o:suse:neuvector:2.7.5"
