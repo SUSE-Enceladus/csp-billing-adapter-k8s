@@ -68,6 +68,16 @@ def test_save_cache_exists(mock_client):
 
 
 @patch('csp_billing_adapter_k8s.plugin.client')
+def test_save_cache_error(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+    api.create_namespaced_secret.side_effect = ApiException(status=404)
+
+    with pytest.raises(ApiException):
+        plugin.save_cache(config, cache)
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
 def test_save_cache(mock_client):
     api = Mock()
     mock_client.CoreV1Api.return_value = api
@@ -99,6 +109,16 @@ def test_get_cache_not_exists(mock_client):
     assert res is None
 
 
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_get_cache_error(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+    api.read_namespaced_secret.side_effect = ApiException(status=400)
+
+    with pytest.raises(ApiException):
+        plugin.get_cache(config)
+
+
 @patch('csp_billing_adapter_k8s.plugin.get_cache')
 @patch('csp_billing_adapter_k8s.plugin.client')
 def test_update_cache(mock_client, mock_get_cache):
@@ -119,6 +139,16 @@ def test_save_csp_config_exists(mock_client):
     api.create_namespaced_config_map.side_effect = ApiException(status=409)
     response = plugin.save_csp_config(config, csp_config)
     assert response is None
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_save_csp_config_error(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+    api.create_namespaced_config_map.side_effect = ApiException(status=400)
+
+    with pytest.raises(ApiException):
+        plugin.save_csp_config(config, csp_config)
 
 
 @patch('csp_billing_adapter_k8s.plugin.client')
@@ -151,6 +181,16 @@ def test_get_csp_config_not_exists(mock_client):
     api.read_namespaced_config_map.side_effect = ApiException(status=404)
     res = plugin.get_csp_config(config)
     assert res is None
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_get_csp_config_error(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+    api.read_namespaced_config_map.side_effect = ApiException(status=400)
+
+    with pytest.raises(ApiException):
+        plugin.get_csp_config(config)
 
 
 @patch('csp_billing_adapter_k8s.plugin.get_csp_config')
@@ -187,4 +227,14 @@ def test_get_usage_not_exists(mock_client):
     mock_client.CustomObjectsApi.return_value = api
 
     with pytest.raises(Exception):
+        plugin.get_usage_data(config)
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_get_usage_error(mock_client):
+    api = Mock()
+    api.get_cluster_custom_object.side_effect = ApiException(status=400)
+    mock_client.CustomObjectsApi.return_value = api
+
+    with pytest.raises(ApiException):
         plugin.get_usage_data(config)
