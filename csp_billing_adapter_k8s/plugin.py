@@ -23,6 +23,7 @@ variables.
 
 import base64
 import json
+import logging
 import os
 
 import csp_billing_adapter
@@ -36,6 +37,8 @@ from kubernetes.config import (
 )
 
 from csp_billing_adapter.config import Config
+
+log = logging.getLogger('CSPBillingAdapter')
 
 namespace = os.environ['ADAPTER_NAMESPACE']
 usage_crd_plural = os.environ['USAGE_CRD_PLURAL']
@@ -54,8 +57,10 @@ def setup_adapter(config: Config):
     """
     try:
         load_incluster_config()
+        log.info('Loaded in cluster config.')
     except ConfigException:
         load_kube_config()
+        log.info('Loaded Kube config.')
 
 
 @csp_billing_adapter.hookimpl
@@ -83,8 +88,10 @@ def save_cache(config: Config, cache: dict):
         )
     except ApiException as error:
         if error.status == 409:
+            log.info('Cache already exists.')
             return None  # Already exists
         else:
+            log.error(f'Failed to save cache: {str(error)}')
             raise
 
 
@@ -103,8 +110,10 @@ def get_cache(config: Config):
         )
     except ApiException as error:
         if error.status == 404:
+            log.info('No existing cache found.')
             return None
         else:
+            log.error(f'Failed to load cache: {str(error)}')
             raise
     else:
         return json.loads(base64.b64decode(resource.data.get('data')).decode())
@@ -150,8 +159,10 @@ def get_csp_config(config: Config):
         )
     except ApiException as error:
         if error.status == 404:
+            log.info('No existing CSP Config.')
             return None
         else:
+            log.error('Failed to load CSP Config: {str(error)}')
             raise
     else:
         return json.loads(resp.data.get('data', '{}'))
@@ -210,8 +221,10 @@ def save_csp_config(
         )
     except ApiException as error:
         if error.status == 409:
+            log.info('CSP Config already exists.')
             return None  # Already exists
         else:
+            log.error(f'Failed to save CSP Config: {str(error)}')
             raise
 
 
@@ -234,10 +247,12 @@ def get_usage_data(config: Config):
         )
     except ApiException as error:
         if error.status == 404:
+            log.error('Usage resource not found.')
             raise Exception(
                 'Usage resource not found. Unable to log current usage.'
             )
         else:
+            log.error(f'Failed to load usage data: {str(error)}')
             raise
 
     # Sanitize k8s metadata from response.
