@@ -21,7 +21,7 @@
 Name:           csp-billing-adapter-k8s
 Version:        0.1.0
 Release:        0
-Summary:        TBD
+Summary:        Implements K8s storage hooks for csp-billing-adapter
 License:        Apache-2.0
 Group:          Development/Languages/Python
 URL:            https://github.com/SUSE-Enceladus/%{name}
