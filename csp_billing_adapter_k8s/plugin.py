@@ -22,6 +22,7 @@ variables.
 
 
 import base64
+import inspect
 import json
 import logging
 import os
@@ -37,6 +38,7 @@ from kubernetes.config import (
 )
 
 from csp_billing_adapter.config import Config
+from csp_billing_adapter.exceptions import CSPBillingAdapterException
 
 log = logging.getLogger('CSPBillingAdapter')
 
@@ -45,6 +47,20 @@ usage_crd_plural = os.environ['USAGE_CRD_PLURAL']
 usage_resource = os.environ['USAGE_RESOURCE']
 usage_api_version = os.environ['USAGE_API_VERSION']
 usage_api_group = os.environ['USAGE_API_GROUP']
+
+
+def _re_raise_api_exception(error: ApiException):
+    try:
+        message = json.loads(error.body)['message']
+    except Exception:
+        # Unexpected format use error message as is
+        message = str(error)
+
+    action = inspect.stack()[1].function.replace('_', ' ')
+
+    raise CSPBillingAdapterException(
+        f'Failed to {action}. {message}'
+    ) from error
 
 
 @csp_billing_adapter.hookimpl
@@ -92,7 +108,7 @@ def save_cache(config: Config, cache: dict):
             return None  # Already exists
         else:
             log.error(f'Failed to save cache: {str(error)}')
-            raise
+            _re_raise_api_exception(error)
 
 
 @csp_billing_adapter.hookimpl
@@ -114,7 +130,7 @@ def get_cache(config: Config):
             return None
         else:
             log.error(f'Failed to load cache: {str(error)}')
-            raise
+            _re_raise_api_exception(error)
     else:
         return json.loads(base64.b64decode(resource.data.get('data')).decode())
 
@@ -163,7 +179,7 @@ def get_csp_config(config: Config):
             return None
         else:
             log.error('Failed to load CSP Config: {str(error)}')
-            raise
+            _re_raise_api_exception(error)
     else:
         return json.loads(resp.data.get('data', '{}'))
 
@@ -225,7 +241,7 @@ def save_csp_config(
             return None  # Already exists
         else:
             log.error(f'Failed to save CSP Config: {str(error)}')
-            raise
+            _re_raise_api_exception(error)
 
 
 @csp_billing_adapter.hookimpl
@@ -253,7 +269,7 @@ def get_usage_data(config: Config):
             )
         else:
             log.error(f'Failed to load usage data: {str(error)}')
-            raise
+            _re_raise_api_exception(error)
 
     # Sanitize k8s metadata from response.
     # This leaves only the usage data provided by the product.

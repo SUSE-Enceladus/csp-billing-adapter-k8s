@@ -28,6 +28,7 @@ from kubernetes.client.rest import ApiException
 from csp_billing_adapter_k8s import plugin
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.adapter import get_plugin_manager
+from csp_billing_adapter.exceptions import CSPBillingAdapterException
 
 pm = get_plugin_manager()
 config = Config.load_from_file(
@@ -50,6 +51,15 @@ csp_config = {
 }
 
 
+def create_exception(status: int):
+    response = Mock()
+    response.status = status
+    response.reason = 'Borked'
+    response.data = '"message": "Borked!"'
+    response.getheaders.return_value = None
+    return ApiException(http_resp=response)
+
+
 @patch('csp_billing_adapter_k8s.plugin.load_kube_config')
 @patch('csp_billing_adapter_k8s.plugin.load_incluster_config')
 def test_setup(mock_load_incluster_cfg, mock_load_kube_cfg):
@@ -62,7 +72,7 @@ def test_setup(mock_load_incluster_cfg, mock_load_kube_cfg):
 def test_save_cache_exists(mock_client):
     api = Mock()
     mock_client.CoreV1Api.return_value = api
-    api.create_namespaced_secret.side_effect = ApiException(status=409)
+    api.create_namespaced_secret.side_effect = create_exception(status=409)
     response = plugin.save_cache(config, cache)
     assert response is None
 
@@ -71,9 +81,9 @@ def test_save_cache_exists(mock_client):
 def test_save_cache_error(mock_client):
     api = Mock()
     mock_client.CoreV1Api.return_value = api
-    api.create_namespaced_secret.side_effect = ApiException(status=404)
+    api.create_namespaced_secret.side_effect = create_exception(status=404)
 
-    with pytest.raises(ApiException):
+    with pytest.raises(CSPBillingAdapterException):
         plugin.save_cache(config, cache)
 
 
@@ -104,7 +114,7 @@ def test_get_cache_not_exists(mock_client):
     api = Mock()
     mock_client.CoreV1Api.return_value = api
 
-    api.read_namespaced_secret.side_effect = ApiException(status=404)
+    api.read_namespaced_secret.side_effect = create_exception(status=404)
     res = plugin.get_cache(config)
     assert res is None
 
@@ -113,9 +123,9 @@ def test_get_cache_not_exists(mock_client):
 def test_get_cache_error(mock_client):
     api = Mock()
     mock_client.CoreV1Api.return_value = api
-    api.read_namespaced_secret.side_effect = ApiException(status=400)
+    api.read_namespaced_secret.side_effect = create_exception(status=400)
 
-    with pytest.raises(ApiException):
+    with pytest.raises(CSPBillingAdapterException):
         plugin.get_cache(config)
 
 
@@ -136,7 +146,7 @@ def test_update_cache(mock_client, mock_get_cache):
 def test_save_csp_config_exists(mock_client):
     api = Mock()
     mock_client.CoreV1Api.return_value = api
-    api.create_namespaced_config_map.side_effect = ApiException(status=409)
+    api.create_namespaced_config_map.side_effect = create_exception(status=409)
     response = plugin.save_csp_config(config, csp_config)
     assert response is None
 
@@ -145,9 +155,9 @@ def test_save_csp_config_exists(mock_client):
 def test_save_csp_config_error(mock_client):
     api = Mock()
     mock_client.CoreV1Api.return_value = api
-    api.create_namespaced_config_map.side_effect = ApiException(status=400)
+    api.create_namespaced_config_map.side_effect = create_exception(status=400)
 
-    with pytest.raises(ApiException):
+    with pytest.raises(CSPBillingAdapterException):
         plugin.save_csp_config(config, csp_config)
 
 
@@ -178,7 +188,7 @@ def test_get_csp_config_not_exists(mock_client):
     api = Mock()
     mock_client.CoreV1Api.return_value = api
 
-    api.read_namespaced_config_map.side_effect = ApiException(status=404)
+    api.read_namespaced_config_map.side_effect = create_exception(status=404)
     res = plugin.get_csp_config(config)
     assert res is None
 
@@ -187,9 +197,9 @@ def test_get_csp_config_not_exists(mock_client):
 def test_get_csp_config_error(mock_client):
     api = Mock()
     mock_client.CoreV1Api.return_value = api
-    api.read_namespaced_config_map.side_effect = ApiException(status=400)
+    api.read_namespaced_config_map.side_effect = create_exception(status=400)
 
-    with pytest.raises(ApiException):
+    with pytest.raises(CSPBillingAdapterException):
         plugin.get_csp_config(config)
 
 
@@ -223,7 +233,7 @@ def test_get_usage(mock_client):
 @patch('csp_billing_adapter_k8s.plugin.client')
 def test_get_usage_not_exists(mock_client):
     api = Mock()
-    api.get_cluster_custom_object.side_effect = ApiException(status=404)
+    api.get_cluster_custom_object.side_effect = create_exception(status=404)
     mock_client.CustomObjectsApi.return_value = api
 
     with pytest.raises(Exception):
@@ -233,8 +243,18 @@ def test_get_usage_not_exists(mock_client):
 @patch('csp_billing_adapter_k8s.plugin.client')
 def test_get_usage_error(mock_client):
     api = Mock()
+    api.get_cluster_custom_object.side_effect = create_exception(status=400)
+    mock_client.CustomObjectsApi.return_value = api
+
+    with pytest.raises(CSPBillingAdapterException):
+        plugin.get_usage_data(config)
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_get_usage_error_unexpected_format(mock_client):
+    api = Mock()
     api.get_cluster_custom_object.side_effect = ApiException(status=400)
     mock_client.CustomObjectsApi.return_value = api
 
-    with pytest.raises(ApiException):
+    with pytest.raises(CSPBillingAdapterException):
         plugin.get_usage_data(config)
