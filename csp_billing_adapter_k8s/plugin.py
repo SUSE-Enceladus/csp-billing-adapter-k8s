@@ -39,6 +39,7 @@ from kubernetes.config import (
 
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.exceptions import CSPBillingAdapterException
+from csp_billing_adapter_k8s import __version__
 
 log = logging.getLogger('CSPBillingAdapter')
 
@@ -289,3 +290,8 @@ def get_usage_data(config: Config):
         pass
 
     return resource
+
+
+@csp_billing_adapter.hookimpl
+def get_version():
+    return ('k8s_plugin', __version__)

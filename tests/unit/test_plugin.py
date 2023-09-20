@@ -258,3 +258,9 @@ def test_get_usage_error_unexpected_format(mock_client):
 
     with pytest.raises(CSPBillingAdapterException):
         plugin.get_usage_data(config)
+
+
+def test_get_version():
+    version = plugin.get_version()
+    assert version[0] == 'k8s_plugin'
+    assert version[1]
