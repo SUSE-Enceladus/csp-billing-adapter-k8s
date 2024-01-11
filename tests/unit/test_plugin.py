@@ -49,6 +49,27 @@ csp_config = {
     'expire': now,
     'errors': []
 }
+metering_archive = [
+  {
+        'billing_time': '2024-02-09T18:11:59.527064+00:00',
+        'billing_status': {
+            'tier_1': {
+                'record_id': '123',
+                'status': 'succeeded'
+            }
+        },
+        'billed_usage': {
+            'tier_1': 10
+        },
+        'usage_records': [
+            {
+                'managed_node_count': 10,
+                'reporting_time': '2024-02-09T18:11:59.527064+00:00',
+                'base_product': 'cpe:/o:suse:product:v1.2.3'
+            }
+        ]
+    }
+]
 
 
 def create_exception(status: int):
@@ -264,3 +285,84 @@ def test_get_version():
     version = plugin.get_version()
     assert version[0] == 'k8s_plugin'
     assert version[1]
+
+
+def test_get_archive_location():
+    result = plugin.get_archive_location()
+    assert result == 'metering-archive'
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_get_metering_archive(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+
+    response = Mock()
+    response.data = {
+        'archive': json.dumps(metering_archive)
+    }
+    api.read_namespaced_config_map.return_value = response
+    res = plugin.get_metering_archive(config)
+    assert res == metering_archive
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_get_metering_archive_not_exists(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+
+    api.read_namespaced_config_map.side_effect = create_exception(status=404)
+    res = plugin.get_metering_archive(config)
+    assert res == []
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_get_metering_archive_error(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+    api.read_namespaced_config_map.side_effect = create_exception(status=400)
+
+    with pytest.raises(CSPBillingAdapterException):
+        plugin.get_metering_archive(config)
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_save_metering_archive_error(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+    api.create_namespaced_config_map.side_effect = create_exception(status=400)
+
+    response = Mock()
+    response.data = {}
+    api.read_namespaced_config_map.return_value = response
+
+    with pytest.raises(CSPBillingAdapterException):
+        plugin.save_metering_archive(config, metering_archive)
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_update_metering_archive(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+    api.patch_namespaced_config_map.return_value = None
+
+    response = Mock()
+    response.data = {
+        'archive': json.dumps(metering_archive)
+    }
+    api.read_namespaced_config_map.return_value = response
+
+    plugin.save_metering_archive(config, metering_archive)
+
+
+@patch('csp_billing_adapter_k8s.plugin.client')
+def test_save_metering_archive(mock_client):
+    api = Mock()
+    mock_client.CoreV1Api.return_value = api
+    api.patch_namespaced_config_map.return_value = None
+
+    response = Mock()
+    response.data = {}
+    api.read_namespaced_config_map.return_value = response
+
+    plugin.save_metering_archive(config, metering_archive)
