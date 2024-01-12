@@ -78,3 +78,21 @@ and is expected to be a RFC 3339 compliant in UTC with the following format:
 YYYY-MM-DDTHH:MM:SS.FFFFFF+00:00. *base_product* is optional and if it's
 provided it is a string containing information about the product name and
 version. At least one usage field but there can be more than one.
+
+## Archive
+
+### save_metering_archive
+
+Stores the adapter metering archive in a configMap named *metering-archive*
+in the configured namespace. If *metering-archive* already exists it is
+updated with the latest data.
+
+### get_metering_archive
+
+Retrieves the metering archive from the configMap named *metering-archive*.
+If the metering archive is not found an empty list is returned.
+
+### get_archive_location
+
+Returns the location of the metering archive. This is the config map name
+*metering-archive*.
