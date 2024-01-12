@@ -19,7 +19,7 @@
 %global skip_python2 1
 %define pythons python3
 Name:           csp-billing-adapter-k8s
-Version:        0.3.0
+Version:        0.4.0
 Release:        0
 Summary:        Implements K8s storage hooks for csp-billing-adapter
 License:        Apache-2.0
