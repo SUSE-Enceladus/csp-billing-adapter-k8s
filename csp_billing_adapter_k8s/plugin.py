@@ -293,5 +293,75 @@ def get_usage_data(config: Config):
 
 
 @csp_billing_adapter.hookimpl
+def get_metering_archive(config: Config):
+    """
+    Get the namespaced metering-archive config map from k8s cluster
+
+    If the config map does not exist return an empty list.
+    """
+
+    api_instance = client.CoreV1Api()
+    try:
+        resp = api_instance.read_namespaced_config_map(
+            'metering-archive',
+            namespace
+        )
+    except ApiException as error:
+        if error.status == 404:
+            log.info('No existing archive.')
+            return []
+        else:
+            log.error('Failed to load archive: {str(error)}')
+            _re_raise_api_exception(error)
+    else:
+        return json.loads(resp.data.get('archive', '[]'))
+
+
+@csp_billing_adapter.hookimpl
+def save_metering_archive(
+    config: Config,
+    archive_data: list
+):
+    """
+    Save the namespaced metering-archive config map in k8s cluster
+
+    If the config map does not exist it is created, Otherwise the
+    existing config map is updated using the values provided.
+    """
+    archive = get_metering_archive(config=config)
+    api_instance = client.CoreV1Api()
+    data = {'archive': json.dumps(archive_data)}
+
+    if archive:
+        api_instance.patch_namespaced_config_map(
+            'metering-archive',
+            namespace,
+            {'data': data}
+        )
+    else:
+        config_map = client.V1ConfigMap(
+            data=data,
+            metadata=client.V1ObjectMeta(
+                name='metering-archive',
+                namespace=namespace
+            )
+        )
+
+        try:
+            api_instance.create_namespaced_config_map(
+                namespace,
+                config_map
+            )
+        except ApiException as error:
+            log.error(f'Failed to save archive: {str(error)}')
+            _re_raise_api_exception(error)
+
+
+@csp_billing_adapter.hookimpl
+def get_archive_location():
+    return 'metering-archive'
+
+
+@csp_billing_adapter.hookimpl
 def get_version():
     return ('k8s_plugin', __version__)
