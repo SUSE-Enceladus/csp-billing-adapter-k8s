@@ -43,6 +43,7 @@ Requires:       python-pluggy
 Requires:       python-kubernetes
 Requires:       python-csp-billing-adapter
 BuildArch:      noarch
+Obsoletes:      python3-csp-billing-adapter-k8s < %{version}
 %python_subpackages
 
 %description
