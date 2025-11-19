@@ -18,7 +18,7 @@
 %{?sle15_python_module_pythons}
 
 Name:           csp-billing-adapter-k8s
-Version:        1.0.0
+Version:        1.1.0
 Release:        0
 Summary:        Implements K8s storage hooks for csp-billing-adapter
 License:        Apache-2.0
