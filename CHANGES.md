@@ -1,3 +1,11 @@
+v1.1.0 (2025-11-19)
+-------------------
+
+- Make environtment variables optional. If the get usage data function is
+  overwritten by a product specific plugin the values will be retrieved
+  in the plugin. If there is no product plugin the environment variables
+  are all required. The namespace environment variable is always required.
+
 v1.0.0 (2024-06-03)
 -------------------
 
