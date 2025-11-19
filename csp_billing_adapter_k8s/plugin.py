@@ -44,10 +44,10 @@ from csp_billing_adapter_k8s import __version__
 log = logging.getLogger('CSPBillingAdapter')
 
 namespace = os.environ['ADAPTER_NAMESPACE']
-usage_crd_plural = os.environ['USAGE_CRD_PLURAL']
-usage_resource = os.environ['USAGE_RESOURCE']
-usage_api_version = os.environ['USAGE_API_VERSION']
-usage_api_group = os.environ['USAGE_API_GROUP']
+usage_crd_plural = os.environ.get('USAGE_CRD_PLURAL')
+usage_resource = os.environ.get('USAGE_RESOURCE')
+usage_api_version = os.environ.get('USAGE_API_VERSION')
+usage_api_group = os.environ.get('USAGE_API_GROUP')
 
 
 def _re_raise_api_exception(error: ApiException):
@@ -252,6 +252,41 @@ def get_usage_data(config: Config):
 
     If the CRD is not found raise an Exception to calling scope.
     """
+    if not usage_api_group:
+        msg = (
+            'Unable to log current usage data. '
+            'Environment variable: "USAGE_API_GROUP" is missing '
+            'and is required to get usage data.'
+        )
+        log.error(msg)
+        raise Exception(msg)
+
+    if not usage_api_version:
+        msg = (
+            'Unable to log current usage data. '
+            'Environment variable: "USAGE_API_VERSION" is missing '
+            'and is required to get usage data.'
+        )
+        log.error(msg)
+        raise Exception(msg)
+
+    if not usage_crd_plural:
+        msg = (
+            'Unable to log current usage data. '
+            'Environment variable: "USAGE_CRD_PLURAL" is missing '
+            'and is required to get usage data.'
+        )
+        log.error(msg)
+        raise Exception(msg)
+
+    if not usage_resource:
+        msg = (
+            'Unable to log current usage data. '
+            'Environment variable: "USAGE_RESOURCE" is missing '
+            'and is required to get usage data.'
+        )
+        log.error(msg)
+        raise Exception(msg)
 
     api = client.CustomObjectsApi()
 
