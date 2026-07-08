@@ -1,3 +1,11 @@
+v1.2.0 (2026-07-08)
+-------------------
+
+- Add pypi publishing workflow
+- Fix license classifier in setup.py
+- Fix pypi package name in spec file
+- Fix csp billing adapter requirement
+
 v1.1.0 (2025-11-19)
 -------------------
 
